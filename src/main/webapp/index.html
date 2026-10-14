@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SurakshaSetu — Report. Protect. Resolve.</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B1220; --panel:#121B2E; --steel:#1B2A41;
+    --paper:#ECE8DF; --amber:#F4A300; --green:#3DBE7A; --blue:#3A86FF;
+    --line: rgba(236,232,223,0.14);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    font-family:'Inter',sans-serif; background:var(--ink); color:var(--paper);
+    min-height:100vh; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    overflow-x:hidden; position:relative;
+  }
+
+  /* ---------- Full-bleed animated poster background ---------- */
+  .bg{position:fixed; inset:0; z-index:0; overflow:hidden;}
+  .bg::after{
+    content:""; position:absolute; inset:0; z-index:2;
+    background:radial-gradient(ellipse at center, rgba(11,18,32,.55) 0%, rgba(11,18,32,.88) 62%, rgba(11,18,32,.97) 100%);
+  }
+  .rows{position:absolute; inset:0; display:flex; flex-direction:column; justify-content:space-evenly;}
+  .row{display:flex; width:max-content;}
+  .row.r1{animation:slide 48s linear infinite;}
+  .row.r2{animation:slide 65s linear infinite; opacity:.75;}
+  .row.r3{animation:slide 80s linear infinite; opacity:.55;}
+  @keyframes slide{ from{transform:translateX(-50%);} to{transform:translateX(0);} }
+  @media (prefers-reduced-motion: reduce){ .row{animation:none;} }
+
+  .tile{
+    width:280px; height:220px; flex-shrink:0; margin:0 10px; border-radius:8px;
+    border:1px solid var(--line); position:relative; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:flex-end; padding:0;
+  }
+  .tile.a{background:linear-gradient(165deg,#15233C 0%,#0E1A2E 100%);}
+  .tile.b{background:linear-gradient(165deg,#1A2A44 0%,#101C32 100%);}
+  .tile.c{background:linear-gradient(165deg,#112036 0%,#0B1526 100%);}
+  .tile.d{background:linear-gradient(165deg,#17273F 0%,#0F1B2F 100%);}
+  .tile .art{
+    flex:1; display:flex; align-items:center; justify-content:center; position:relative;
+    background:repeating-linear-gradient(135deg, transparent 0 16px, rgba(244,163,0,0.05) 16px 32px);
+  }
+  .tile .art svg{width:88px; height:88px;}
+  .tile .caption{padding:14px 18px 16px;}
+  .tile h3{font-family:'Archivo Black',sans-serif; font-size:.92rem; line-height:1.2; color:var(--paper);}
+  .tile h3 em{font-style:normal; color:var(--amber);}
+  .tile p{font-size:.68rem; color:#8FA0BC; margin-top:5px;}
+  .tile .badge{
+    position:absolute; top:12px; left:12px; font-size:.58rem; font-weight:700; letter-spacing:.08em;
+    padding:4px 8px; border-radius:3px; background:rgba(61,190,122,.15); color:var(--green); border:1px solid rgba(61,190,122,.4); z-index:2;
+  }
+  .tile .sirens{position:absolute; top:0; left:0; right:0; height:4px; display:flex;}
+  .tile .sirens span{flex:1;}
+  .tile .sirens span:first-child{background:var(--amber); opacity:.8;}
+  .tile .sirens span:last-child{background:var(--blue); opacity:.8;}
+
+  /* ---------- Centered form ---------- */
+  .stage{position:relative; z-index:5; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 20px;}
+  .card{
+    width:100%; max-width:440px; background:rgba(18,27,46,.82); backdrop-filter:blur(14px);
+    border:1px solid var(--line); border-radius:10px; padding:36px 32px; box-shadow:0 30px 60px rgba(0,0,0,.45);
+  }
+  .brand{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:22px;}
+  .shield{width:26px; height:29px; flex-shrink:0;}
+  .brand span{font-family:'Archivo Black',sans-serif; font-size:1.05rem; letter-spacing:.01em;}
+  .brand span em{font-style:normal; color:var(--amber);}
+
+  .tabs{display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:24px;}
+  .tabs button{
+    flex:1; padding:12px; background:transparent; color:#8795AC; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:.85rem; transition:background .15s, color .15s;
+  }
+  .tabs button.active{background:var(--amber); color:#1a1200;}
+
+  .view{display:none;} .view.active{display:block;}
+  h3.title{font-family:'Archivo Black',sans-serif; font-size:1.2rem; margin-bottom:4px; text-align:center;}
+  .sub{color:#8795AC; font-size:.82rem; margin-bottom:22px; text-align:center;}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:.76rem; color:#AEB9CC; margin-bottom:6px;}
+  .field input, .field select{
+    width:100%; padding:10px 12px; background:var(--panel); border:1px solid var(--line);
+    border-radius:5px; color:var(--paper); font-size:.88rem; font-family:'Inter',sans-serif;
+  }
+  .field input:focus, .field select:focus{outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .err{font-size:.72rem; color:#FF8585; margin-top:4px; min-height:14px;}
+
+  .submit{
+    width:100%; padding:12px; background:var(--amber); color:#1a1200; border:none; border-radius:5px;
+    font-family:'Inter',sans-serif; font-weight:700; font-size:.9rem; cursor:pointer; margin-top:4px; transition:filter .15s;
+  }
+  .submit:hover{filter:brightness(1.08);}
+  .switchLine{text-align:center; font-size:.8rem; color:#8795AC; margin-top:16px;}
+  .switchLine a, .forgot{color:var(--amber); text-decoration:none; cursor:pointer;}
+  .forgot{display:block; text-align:right; font-size:.76rem; margin:-6px 0 14px;}
+
+  .banner{display:none; margin-top:14px; padding:11px 13px; border-radius:5px; font-size:.8rem; border:1px solid var(--line);}
+  .banner.ok{display:block; background:rgba(61,190,122,.1); border-color:rgba(61,190,122,.4); color:#8CE8B2;}
+  .banner.info{display:block; background:rgba(58,134,255,.1); border-color:rgba(58,134,255,.4); color:#9FC4FF;}
+  .banner.bad{display:block; background:rgba(229,62,62,.1); border-color:rgba(229,62,62,.4); color:#FF9B9B;}
+
+  /* ===== v2: poster wall, hero, siren bar, splash ===== */
+  .siren-bar{position:fixed; top:0; left:0; right:0; height:4px; z-index:30; background:linear-gradient(90deg,#E53E3E,#3A86FF,#E53E3E); background-size:200% 100%; animation:siren 1.6s linear infinite; box-shadow:0 0 18px rgba(229,62,62,.6),0 0 18px rgba(58,134,255,.5);}
+  @keyframes siren{from{background-position:0 0} to{background-position:200% 0}}
+  .glow{position:fixed; z-index:1; width:60vmax; height:60vmax; border-radius:50%; filter:blur(90px); pointer-events:none; opacity:.35; animation:pulse 3.2s ease-in-out infinite alternate;}
+  .glow.red{background:#E53E3E; top:-30vmax; left:-20vmax;}
+  .glow.blue{background:#3A86FF; bottom:-30vmax; right:-20vmax; animation-delay:1.6s;}
+  @keyframes pulse{from{opacity:.12} to{opacity:.38}}
+
+  .rows{gap:0;}
+  .row.r2{animation-name:slideRev;}
+  @keyframes slideRev{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+  .tile.poster{
+    height:clamp(170px,29vh,300px); width:clamp(120px,20.3vh,210px); margin:0 9px; padding:0; border-radius:6px;
+    border:1px solid rgba(255,255,255,.1); background:#0E1A2E; transition:transform .5s ease, filter .5s ease;
+    box-shadow:0 10px 24px rgba(0,0,0,.5);
+  }
+  .tile.poster svg.pic{position:absolute; inset:0; width:100%; height:100%;}
+  .tile.poster .cap{position:absolute; left:0; right:0; bottom:0; padding:30px 12px 12px; background:linear-gradient(transparent, rgba(5,9,18,.95) 55%);}
+  .tile.poster h3{font-family:'Archivo Black',sans-serif; font-size:clamp(.62rem,1.55vh,.82rem); line-height:1.15; letter-spacing:.02em;}
+  .tile.poster h3 em{font-style:normal; color:var(--amber);}
+  .tile.poster .tag{display:inline-block; font-size:.5rem; font-weight:700; letter-spacing:.14em; color:#9FC4FF; margin-bottom:5px;}
+  .tile.poster::after{content:""; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent); transform:skewX(-18deg); animation:sweep 7s ease-in-out infinite;}
+  .row.r2 .tile.poster::after{animation-delay:2s} .row.r3 .tile.poster::after{animation-delay:4s}
+  @keyframes sweep{0%,60%{left:-60%} 100%{left:140%}}
+  .bg:hover .tile.poster{filter:brightness(.8);}
+
+  .stage{gap:6vw; justify-content:center;}
+  .hero{max-width:430px; animation:heroIn 1s .5s cubic-bezier(.2,.8,.2,1) both;}
+  .hero .pill{display:inline-flex; align-items:center; gap:8px; font-size:.7rem; font-weight:700; letter-spacing:.14em; color:#8CE8B2; border:1px solid rgba(61,190,122,.45); background:rgba(61,190,122,.1); padding:6px 12px; border-radius:99px;}
+  .hero .pill i{width:8px; height:8px; border-radius:50%; background:var(--green); animation:blink 1.2s infinite;}
+  @keyframes blink{50%{opacity:.2}}
+  .hero h1{font-family:'Archivo Black',sans-serif; font-size:clamp(2.2rem,4.6vw,3.6rem); line-height:1.02; margin:18px 0 14px;}
+  .hero h1 em{font-style:normal; color:var(--amber);}
+  .hero p{color:#B9C4D8; line-height:1.6; font-size:.98rem;}
+  .hero .stats{display:flex; gap:22px; margin-top:26px;}
+  .hero .stats b{display:block; font-family:'Archivo Black',sans-serif; font-size:1.5rem; color:var(--paper);}
+  .hero .stats span{font-size:.7rem; color:#8FA0BC; letter-spacing:.04em;}
+  @keyframes heroIn{from{opacity:0; transform:translateX(-40px)} to{opacity:1; transform:none}}
+  @media (max-width:980px){ .hero{display:none;} }
+
+  .card{animation:rise .9s .35s cubic-bezier(.2,.8,.2,1) both;}
+  @keyframes rise{from{opacity:0; transform:translateY(40px) scale(.97)} to{opacity:1; transform:none}}
+  .view.active{animation:fadeView .45s ease both;}
+  @keyframes fadeView{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  .shield{animation:shieldPulse 2.4s ease-in-out infinite;}
+  @keyframes shieldPulse{50%{filter:drop-shadow(0 0 8px rgba(244,163,0,.8))}}
+  .submit{position:relative; overflow:hidden;}
+  .submit:active{transform:scale(.98);}
+  .helpline{margin-top:14px; text-align:center; font-size:.72rem; color:#8795AC;}
+  .helpline b{color:#FF9B9B;}
+
+  /* intro splash (Netflix-style) */
+  .splash{position:fixed; inset:0; z-index:100; background:#05080F; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; animation:splashOut .7s 2s ease forwards; pointer-events:none;}
+  .splash svg{width:74px; height:82px; animation:logoZoom 2s ease both;}
+  .splash .word{font-family:'Archivo Black',sans-serif; font-size:clamp(1.6rem,6vw,2.6rem); letter-spacing:.14em; color:var(--paper); animation:wordIn 1.6s .2s ease both;}
+  .splash .word em{font-style:normal; color:var(--amber);}
+  .splash .bar{width:min(260px,60vw); height:3px; background:linear-gradient(90deg,#E53E3E,#3A86FF); transform-origin:left; animation:barGrow 1.6s .1s ease both;}
+  @keyframes logoZoom{0%{opacity:0; transform:scale(.4)} 40%{opacity:1; transform:scale(1)} 100%{opacity:1; transform:scale(1.12)}}
+  @keyframes wordIn{0%{opacity:0; letter-spacing:.5em} 100%{opacity:1; letter-spacing:.14em}}
+  @keyframes barGrow{from{transform:scaleX(0)} to{transform:scaleX(1)}}
+  @keyframes splashOut{to{opacity:0; visibility:hidden; transform:scale(1.15)}}
+  @media (prefers-reduced-motion: reduce){ .splash{display:none;} .siren-bar,.glow,.tile.poster::after,.hero,.card,.shield{animation:none;} }
+
+  .bg::after{background:linear-gradient(90deg,rgba(8,12,22,.9) 0%,rgba(8,12,22,.62) 42%,rgba(8,12,22,.34) 100%),linear-gradient(180deg,rgba(8,12,22,.7) 0%,transparent 22%,transparent 78%,rgba(8,12,22,.8) 100%);}
+  .card{background:rgba(14,22,38,.9);}
+  .hero{text-shadow:0 2px 18px rgba(0,0,0,.7);}
+</style>
+<meta name="theme-color" content="#0B1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+<div class="splash" aria-hidden="true">
+  <svg viewBox="0 0 34 38" fill="none"><path d="M17 1L32 7V18C32 27 25.5 33.5 17 37C8.5 33.5 2 27 2 18V7L17 1Z" stroke="#F4A300" stroke-width="2"/><path d="M11 19L15 23L24 13" stroke="#F4A300" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="word">SURAKSHA<em>SETU</em></div>
+  <div class="bar"></div>
+</div>
+<div class="siren-bar"></div>
+<div class="glow red"></div><div class="glow blue"></div>
+
+<div class="bg">
+  <div class="rows" id="rows"></div>
+</div>
+
+<div class="stage">
+  <div class="hero">
+    <span class="pill"><i></i> POLICE &middot; ONLINE &middot; 24&times;7</span>
+    <h1>Report.<br><em>Protect.</em><br>Resolve.</h1>
+    <p>File a complaint or an e-FIR, book an appointment, and talk to your nearest police station &mdash; from your phone, without standing in a queue.</p>
+    <div class="stats"><div><b>7</b><span>CASE TYPES</span></div><div><b>24&times;7</b><span>ONLINE FILING</span></div><div><b>112</b><span>EMERGENCY</span></div></div>
+  </div>
+  <div class="card">
+
+    <div class="brand">
+      <svg class="shield" viewBox="0 0 34 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17 1L32 7V18C32 27 25.5 33.5 17 37C8.5 33.5 2 27 2 18V7L17 1Z" stroke="#F4A300" stroke-width="2"/>
+        <path d="M11 19L15 23L24 13" stroke="#F4A300" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>SURAKSHA<em>SETU</em></span>
+    </div>
+
+    <div class="tabs">
+      <button id="tabRegister" class="active" onclick="switchView('register')">Register</button>
+      <button id="tabLogin" onclick="switchView('login')">Log in</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="view active" id="view-register">
+      <h3 class="title">Create your account</h3>
+      <p class="sub">Report incidents directly to the nearest police station.</p>
+
+      <form id="registerForm" novalidate>
+        <div class="field">
+          <label for="r-username">Full name / Username</label>
+          <input id="r-username" type="text" autocomplete="username">
+          <div class="err" id="err-r-username"></div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="r-password">Password</label>
+            <input id="r-password" type="password" autocomplete="new-password">
+            <div class="err" id="err-r-password"></div>
+          </div>
+          <div class="field">
+            <label for="r-phone">Phone number</label>
+            <input id="r-phone" type="tel" maxlength="10">
+            <div class="err" id="err-r-phone"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="r-email">Email address</label>
+          <input id="r-email" type="email" autocomplete="email">
+          <div class="err" id="err-r-email"></div>
+        </div>
+
+        <div class="field">
+          <label for="r-address">Address</label>
+          <input id="r-address" type="text">
+          <div class="err" id="err-r-address"></div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="r-state">State</label>
+            <select id="r-state">
+              <option value="">Select state</option>
+              <option>Karnataka</option><option>Tamil Nadu</option><option>Maharashtra</option>
+              <option>Delhi</option><option>Telangana</option><option>Kerala</option>
+              <option>West Bengal</option><option>Uttar Pradesh</option><option>Gujarat</option>
+              <option>Rajasthan</option><option>Punjab</option><option>Odisha</option><option>Assam</option>
+              <option>Andhra Pradesh</option>
+            </select>
+            <div class="err" id="err-r-state"></div>
+          </div>
+          <div class="field">
+            <label for="r-city">City</label>
+            <input id="r-city" type="text">
+            <div class="err" id="err-r-city"></div>
+          </div>
+        </div>
+
+        <button type="submit" class="submit">Register</button>
+        <div class="banner" id="r-banner"></div>
+      </form>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="view" id="view-login">
+      <h3 class="title">Welcome back</h3>
+      <p class="sub">Log in to file a report or track an existing case.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="l-email">Email address</label>
+          <input id="l-email" type="email" autocomplete="email">
+          <div class="err" id="err-l-email"></div>
+        </div>
+        <div class="field">
+          <label for="l-username">Username</label>
+          <input id="l-username" type="text" autocomplete="username">
+          <div class="err" id="err-l-username"></div>
+        </div>
+        <div class="field">
+          <label for="l-password">Password</label>
+          <input id="l-password" type="password" autocomplete="current-password">
+          <div class="err" id="err-l-password"></div>
+        </div>
+        <a class="forgot" onclick="forgotPassword()">Forgot password?</a>
+
+        <button type="submit" class="submit">Log in</button>
+        <div class="banner" id="l-banner"></div>
+      </form>
+
+      <p class="helpline">In an emergency, don't wait &mdash; dial <b>112</b></p>
+      <p class="switchLine">New to SurakshaSetu? <a onclick="switchView('register')">Create an account</a></p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ---------------- Background poster wall (original illustrations) ---------------- */
+const GRAD = (id,a,b)=>`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>`;
+const BG = (id,a,b)=>`${GRAD(id,a,b)}<rect width="200" height="280" fill="url(#${id})"/>`;
+const OFFICER = `<path d="M30 280V225C30 200 60 190 100 190C140 190 170 200 170 225V280Z" fill="#1B2A41"/><path d="M82 190L100 218L118 190Z" fill="#ECE8DF"/><path d="M100 218L92 280H108Z" fill="#0B1220"/><rect x="118" y="226" width="26" height="30" rx="4" fill="#F4A300"/><path d="M131 232l3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1z" fill="#1a1200"/><rect x="86" y="160" width="28" height="34" rx="8" fill="#C9A27E"/><ellipse cx="100" cy="140" rx="32" ry="38" fill="#D9B38F"/><path d="M62 128C62 104 78 96 100 96C122 96 138 104 138 128C138 120 120 114 100 114C80 114 62 120 62 128Z" fill="#0F1A2E"/><path d="M56 118H144L138 106C134 92 120 82 100 82C80 82 66 92 62 106Z" fill="#162743"/><rect x="52" y="116" width="96" height="10" rx="4" fill="#0B1220"/><circle cx="100" cy="100" r="9" fill="#F4A300"/><path d="M85 144h10M105 144h10" stroke="#3b2a1a" stroke-width="3" stroke-linecap="round"/><path d="M92 162q8 5 16 0" stroke="#7a5638" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+const OFFICERW = `<path d="M30 280V225C30 200 60 190 100 190C140 190 170 200 170 225V280Z" fill="#1B2A41"/><path d="M82 190L100 216L118 190Z" fill="#ECE8DF"/><rect x="86" y="160" width="28" height="34" rx="8" fill="#B88B68"/><path d="M60 140C56 100 76 84 100 84C124 84 144 100 140 140C140 190 130 200 128 200L72 200C70 200 60 190 60 140Z" fill="#0F1A2E"/><ellipse cx="100" cy="140" rx="30" ry="36" fill="#C99C77"/><path d="M62 112C62 92 78 80 100 80C122 80 138 92 138 112L138 120C128 104 72 104 62 120Z" fill="#0F1A2E"/><path d="M60 100H140L134 90C130 76 118 68 100 68C82 68 70 76 66 90Z" fill="#162743"/><rect x="56" y="98" width="88" height="9" rx="4" fill="#0B1220"/><circle cx="100" cy="86" r="8" fill="#F4A300"/><path d="M86 142h9M105 142h9" stroke="#3b2a1a" stroke-width="3" stroke-linecap="round"/><path d="M92 160q8 5 16 0" stroke="#7a3d3d" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="120" y="228" width="24" height="28" rx="4" fill="#F4A300"/>`;
+const CAR = `<path d="M18 190L44 150C48 144 54 140 62 140H138C146 140 152 144 156 150L182 190V222H18Z" fill="#ECE8DF"/><path d="M18 190H182V206H18Z" fill="#162743"/><path d="M54 152H100V178H44Z M106 152H146L156 178H106Z" fill="#3A86FF" opacity=".55"/><rect x="82" y="128" width="36" height="12" rx="3" fill="#0B1220"/><rect x="84" y="130" width="15" height="8" fill="#E53E3E"><animate attributeName="opacity" values="1;.15;1" dur=".8s" repeatCount="indefinite"/></rect><rect x="101" y="130" width="15" height="8" fill="#3A86FF"><animate attributeName="opacity" values=".15;1;.15" dur=".8s" repeatCount="indefinite"/></rect><circle cx="52" cy="222" r="15" fill="#0B1220"/><circle cx="52" cy="222" r="6" fill="#8FA0BC"/><circle cx="148" cy="222" r="15" fill="#0B1220"/><circle cx="148" cy="222" r="6" fill="#8FA0BC"/><rect x="26" y="196" width="22" height="6" rx="3" fill="#F4A300"/><path d="M0 150L200 110M0 130L200 80" stroke="#E53E3E" stroke-width="2" opacity=".25"/>`;
+const SHIELD112 = `<path d="M100 40L170 66V130C170 170 140 200 100 216C60 200 30 170 30 130V66Z" fill="#101C32" stroke="#F4A300" stroke-width="4"/><text x="100" y="146" text-anchor="middle" font-family="Archivo Black, sans-serif" font-size="56" fill="#ECE8DF">112</text><circle cx="100" cy="100" r="46" fill="none" stroke="#E53E3E" stroke-width="3" opacity=".6"><animate attributeName="r" values="40;86;40" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".7;0;.7" dur="2.4s" repeatCount="indefinite"/></circle>`;
+const CYBER = `<rect x="52" y="118" width="96" height="76" rx="10" fill="#101C32" stroke="#F4A300" stroke-width="4"/><path d="M72 118V92C72 72 85 60 100 60C115 60 128 72 128 92V118" fill="none" stroke="#F4A300" stroke-width="5"/><circle cx="100" cy="150" r="9" fill="#3A86FF"/><rect x="97" y="156" width="6" height="18" rx="3" fill="#3A86FF"/><path d="M20 70H60M140 60H182M24 214H70M130 210H176" stroke="#3A86FF" stroke-width="2" opacity=".5"/><circle cx="20" cy="70" r="3" fill="#3A86FF"/><circle cx="182" cy="60" r="3" fill="#3A86FF"/>`;
+const FPRINT = `<g fill="none" stroke="#F4A300" stroke-width="3.5" stroke-linecap="round"><path d="M60 150C60 108 78 82 100 82C122 82 140 108 140 150"/><path d="M72 160C72 120 84 98 100 98C116 98 128 120 128 160"/><path d="M84 172C84 138 90 114 100 114C110 114 116 138 116 172"/><path d="M96 186C96 160 98 134 100 130"/><path d="M48 146C48 96 70 66 100 66C130 66 152 96 152 146"/></g><circle cx="100" cy="108" r="86" fill="none" stroke="#3A86FF" stroke-width="2" stroke-dasharray="6 8" opacity=".5"><animateTransform attributeName="transform" type="rotate" from="0 100 108" to="360 100 108" dur="14s" repeatCount="indefinite"/></circle>`;
+const PIN = `<path d="M100 40C74 40 54 60 54 86C54 122 100 178 100 178C100 178 146 122 146 86C146 60 126 40 100 40Z" fill="#101C32" stroke="#F4A300" stroke-width="4"/><circle cx="100" cy="86" r="18" fill="#3A86FF"/><ellipse cx="100" cy="196" rx="34" ry="8" fill="none" stroke="#F4A300" stroke-width="2"><animate attributeName="rx" values="14;46;14" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0;1" dur="2.2s" repeatCount="indefinite"/></ellipse>`;
+const CHAT = `<rect x="34" y="70" width="104" height="64" rx="14" fill="#101C32" stroke="#F4A300" stroke-width="3.5"/><path d="M58 134L52 158L82 134Z" fill="#101C32" stroke="#F4A300" stroke-width="3.5" stroke-linejoin="round"/><rect x="62" y="154" width="104" height="58" rx="14" fill="#1B2A41" stroke="#3A86FF" stroke-width="3.5"/><path d="M52 94H120M52 110H98M80 176H148M80 192H128" stroke="#8FA0BC" stroke-width="4" stroke-linecap="round"/>`;
+const posters = [
+  {art:BG('g1','#16315C','#0A1424')+OFFICER, tag:'CITIZEN FIRST', h:'SERVING.<br><em>PROTECTING.</em>'},
+  {art:BG('g2','#3B1620','#0A1424')+CAR, tag:'ON PATROL', h:'HELP IS<br><em>ON THE WAY.</em>'},
+  {art:BG('g3','#14284A','#0A1424')+SHIELD112, tag:'EMERGENCY', h:'DIAL <em>112.</em><br>ANYTIME.'},
+  {art:BG('g4','#10284A','#07101E')+CYBER, tag:'CYBER SAFETY', h:'FRAUD ONLINE?<br><em>REPORT IT.</em>'},
+  {art:BG('g5','#2A1A44','#0A1424')+OFFICERW, tag:'WOMEN IN KHAKI', h:'SHE SERVES.<br><em>SHE PROTECTS.</em>'},
+  {art:BG('g6','#17304F','#0A1424')+FPRINT, tag:'INVESTIGATION', h:'EVERY CLUE<br><em>COUNTS.</em>'},
+  {art:BG('g7','#3A2A10','#0A1424')+PIN, tag:'MISSING PERSON', h:'FIND THEM.<br><em>FASTER.</em>'},
+  {art:BG('g8','#12294A','#07101E')+CHAT, tag:'TALK TO POLICE', h:'CHAT WITH YOUR<br><em>STATION.</em>'},
+];
+function tileHTML(t, n){
+  const art = t.art.replace(/id="(g\d)"/g, `id="$1_${n}"`).replace(/url\(#(g\d)\)/g, `url(#$1_${n})`).replace(/href="#(g\d)"/g,'');
+  return `<div class="tile poster"><div class="sirens"><span></span><span></span></div>
+    <svg class="pic" viewBox="0 0 200 280" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${art}</svg>
+    <div class="cap"><span class="tag">${t.tag}</span><h3>${t.h}</h3></div></div>`;
+}
+const rowsEl = document.getElementById('rows');
+let uid = 0;
+for(let i=0;i<3;i++){
+  const row = document.createElement('div');
+  row.className = 'row r'+(i+1);
+  const order = posters.map((_,k)=>posters[(k+i*3)%posters.length]);
+  // the set is rendered twice so the -50% scroll loops seamlessly
+  row.innerHTML = order.map(t=>tileHTML(t,uid++)).join('') + order.map(t=>tileHTML(t,uid++)).join('');
+  rowsEl.appendChild(row);
+}
+
+/* ---------------- Tabs ---------------- */
+function switchView(name){
+  document.getElementById('view-register').classList.toggle('active', name==='register');
+  document.getElementById('view-login').classList.toggle('active', name==='login');
+  document.getElementById('tabRegister').classList.toggle('active', name==='register');
+  document.getElementById('tabLogin').classList.toggle('active', name==='login');
+}
+
+/* ---------------- Validation helpers ---------------- */
+function setErr(id, msg){ document.getElementById('err-'+id).textContent = msg || ''; }
+function isEmpty(v){ return !v || v.trim().length === 0; }
+function validEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function validPhone(v){ return /^\d{10}$/.test(v); }
+function validPassword(v){ return v.length >= 6 && /\d/.test(v); }
+
+function showBanner(el, type, msg){
+  el.className = 'banner ' + type;
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+/* ---------------- Register ---------------- */
+document.getElementById('registerForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  let ok = true;
+  const username = document.getElementById('r-username').value.trim();
+  const password = document.getElementById('r-password').value;
+  const phone = document.getElementById('r-phone').value.trim();
+  const email = document.getElementById('r-email').value.trim();
+  const address = document.getElementById('r-address').value.trim();
+  const state = document.getElementById('r-state').value;
+  const city = document.getElementById('r-city').value.trim();
+
+  ['r-username','r-password','r-phone','r-email','r-address','r-state','r-city'].forEach(id=>setErr(id,''));
+
+  if(isEmpty(username) || username.length < 4){ setErr('r-username','At least 4 characters.'); ok=false; }
+  if(!validPassword(password)){ setErr('r-password','Min 6 chars, include a number.'); ok=false; }
+  if(!validPhone(phone)){ setErr('r-phone','Enter a 10-digit number.'); ok=false; }
+  if(!validEmail(email)){ setErr('r-email','Enter a valid email.'); ok=false; }
+  if(isEmpty(address)){ setErr('r-address','Address is required.'); ok=false; }
+  if(isEmpty(state)){ setErr('r-state','Select a state.'); ok=false; }
+  if(isEmpty(city)){ setErr('r-city','City is required.'); ok=false; }
+
+  const banner = document.getElementById('r-banner');
+  banner.style.display='none';
+  if(!ok) return;
+
+  const record = { username, password, phone, address, state, city, email };
+
+  fetch('/SurakshaSetu/register', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams(record)
+  })
+  .then(res => res.json())
+  .then(data => {
+    showBanner(banner, data.status === 'success' ? 'ok' : 'bad', data.message);
+  })
+  .catch(() => {
+    showBanner(banner, 'bad', 'Could not reach the server. Is Jetty running?');
+  });
+});
+
+/* ---------------- Login ---------------- */
+document.getElementById('loginForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  let ok = true;
+  const email = document.getElementById('l-email').value.trim();
+  const username = document.getElementById('l-username').value.trim();
+  const password = document.getElementById('l-password').value;
+
+  ['l-email','l-username','l-password'].forEach(id=>setErr(id,''));
+
+  if(!validEmail(email)){ setErr('l-email','Enter a valid email.'); ok=false; }
+  if(isEmpty(username)){ setErr('l-username','Username is required.'); ok=false; }
+  if(isEmpty(password)){ setErr('l-password','Password is required.'); ok=false; }
+
+  const banner = document.getElementById('l-banner');
+  banner.style.display='none';
+  if(!ok) return;
+
+  fetch('/SurakshaSetu/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({ email, username, password })
+  })
+  .then(res => res.json())
+  .then(data => {
+    showBanner(banner, data.status === 'success' ? 'ok' : 'bad', data.message);
+    if (data.redirect) setTimeout(() => { location.href = data.redirect; }, 800);
+  })
+  .catch(() => {
+    showBanner(banner, 'bad', 'Could not reach the server. Is Jetty running?');
+  });
+});
+
+function forgotPassword(){
+  const banner = document.getElementById('l-banner');
+  showBanner(banner, 'info', 'This triggers the OTP flow — OtpService generates a code, EmailService mails it to your registered address.');
+}
+</script>
+</body>
+</html>

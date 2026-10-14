@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SurakshaSetu — Admin</title>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="crime.css">
+<link rel="stylesheet" href="admin-hub.css">
+<meta name="theme-color" content="#0B1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<header>
+  <div class="brand">Suraksha<span>Setu</span> &middot; Admin</div>
+  <div class="who" id="who"></div>
+  <div><button class="btn" onclick="load();loadRagging();CR.refresh(true)">Refresh</button> <a class="btn" href="logout">Log out</a></div>
+</header>
+
+<nav class="navtabs" id="cnav">
+  <button data-t="home" class="on">🏠 Home</button>
+  <button data-t="dash">📊 Live Dashboard</button>
+  <button data-t="bi">📈 BI Studio</button>
+  <button data-t="ask">🤖 Ask AI</button>
+  <button data-t="assign">👮 Assign Police</button>
+  <button data-t="reports">📑 Police Reports</button>
+  <button data-t="prone">🗺️ Crime Map</button>
+  <button data-t="links">🕸️ Accused Links</button>
+  <button data-t="files">🗂️ Accused Files</button>
+  <button data-t="officers">👥 Officers</button>
+  <button data-t="cases">📋 Cases &amp; Ragging</button>
+</nav>
+
+
+<main id="cmain">
+  <div class="banner" id="cmsg"></div>
+  <section class="tabpane on" id="t-home"><div id="cr-home" style="display:grid;gap:16px"></div></section>
+  <section class="tabpane" id="t-dash"><div id="cr-dash" style="display:grid;gap:16px"></div></section>
+  <section class="tabpane" id="t-bi"><div id="cr-bi" style="display:grid;gap:16px"></div></section>
+  <section class="tabpane" id="t-ask"><div id="cr-ask" style="display:grid;gap:14px"></div></section>
+  <section class="tabpane" id="t-reports"><div id="cr-reports" style="display:grid;gap:14px"></div></section>
+  <section class="tabpane" id="t-officers"><div id="cr-officers" style="display:grid;gap:14px"></div></section>
+  <section class="tabpane" id="t-assign"><div id="cr-assign" style="display:grid;gap:16px"></div></section>
+  <section class="tabpane" id="t-prone"><div id="cr-prone" style="display:grid;gap:14px"></div></section>
+  <section class="tabpane" id="t-links"><div id="cr-links" style="display:grid;gap:14px"></div></section>
+  <section class="tabpane" id="t-files"><div id="cr-files" style="display:grid;gap:14px"></div></section>
+  <section class="tabpane" id="t-cases">
+  <div class="stats" id="stats"></div>
+  <div class="banner" id="msg"></div>
+
+  <section>
+    <h2>Needs assignment</h2>
+    <div class="cases" id="pending"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section>
+    <h2>Anti-ragging reports</h2>
+    <div class="cases" id="ragging"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section>
+    <h2>All cases</h2>
+    <div class="cases" id="all"></div>
+  </section>
+</section>
+</main>
+<div class="cr-modal" id="cr-modal"></div>
+
+<script src="app.js"></script>
+<script src="officer-report.js"></script>
+<script src="admin-crime.js"></script>
+<script src="admin-hub.js"></script>
+<script>
+async function load() {
+  const r = await api('/api/complaints');
+  if (!r.ok) return;
+  const all = r.data;
+  const pending = all.filter(c => c.status === 'Pending');
+  const awaiting = all.filter(c => c.status.indexOf('Awaiting') >= 0);
+  const active = all.filter(c => c.status === 'Under Investigation');
+
+  document.getElementById('stats').innerHTML =
+    stat(all.length, 'Total cases') + stat(pending.length, 'Need assignment') +
+    stat(awaiting.length, 'Awaiting officer') + stat(active.length, 'Under investigation');
+
+  document.getElementById('pending').innerHTML = pending.length
+    ? pending.map(c => caseCard(c,
+        '<div class="actions"><button class="btn primary" onclick="showMatches(' + c.id + ')">Assign officer</button></div>' +
+        '<div class="assign" id="a' + c.id + '"></div>', true)).join('')
+    : '<div class="empty">Nothing waiting. All cases have an officer.</div>';
+
+  document.getElementById('all').innerHTML = all.length
+    ? all.map(c => caseCard(c, '', true)).join('')
+    : '<div class="empty">No complaints registered yet.</div>';
+}
+
+const RSTAT = ['Received', 'Under review', 'Forwarded to the college Anti-Ragging Committee', 'Action taken', 'Closed'];
+async function loadRagging() {
+  const r = await api('/api/ragging');
+  const box = document.getElementById('ragging');
+  if (!r.ok) { box.innerHTML = '<div class="empty">Could not load reports.</div>'; return; }
+  box.innerHTML = r.data.length ? r.data.map(x =>
+    '<div class="card"><div class="top"><b>' + esc(x.code) + '</b>' +
+    (x.urgent ? '<span class="tag Critical">Urgent</span>' : '') +
+    '<span class="tag s-pending">' + (x.anonymous ? 'Anonymous' : 'Named') + '</span>' +
+    '<span class="tag s-awaiting">' + esc(x.status) + '</span></div>' +
+    '<div class="meta">' + esc(x.type) + ' · ' + esc(x.college) + (x.city ? ', ' + esc(x.city) : '') + (x.state ? ', ' + esc(x.state) : '') + ' · ' + esc(when(x.filedAt)) + '</div>' +
+    '<p>' + esc(x.description) + '</p>' +
+    (x.happenedAt ? '<div class="meta">Where/when: ' + esc(x.happenedAt) + '</div>' : '') +
+    (x.accused ? '<div class="meta">Involved: ' + esc(x.accused) + '</div>' : '') +
+    (x.contact ? '<div class="meta">Contact: ' + esc(x.contact) + '</div>' : '') +
+    '<div class="actions"><select id="rs' + x.reportId + '">' + RSTAT.map(s => '<option' + (s === x.status ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select>' +
+    '<button class="btn good" onclick="setRagging(' + x.reportId + ')">Update status</button></div></div>').join('')
+    : '<div class="empty">No anti-ragging reports yet.</div>';
+}
+async function setRagging(id) {
+  const r = await post('/api/ragging', { action: 'status', reportId: id, status: document.getElementById('rs' + id).value });
+  banner('msg', r.ok, r.data.message || 'Something went wrong.');
+  loadRagging();
+}
+
+function stat(n, label) { return '<div class="stat"><b>' + n + '</b><span>' + label + '</span></div>'; }
+
+async function showMatches(id) {
+  const box = document.getElementById('a' + id);
+  box.innerHTML = '<div class="meta">Finding matching officers…</div>';
+  const r = await api('/api/admin?complaintId=' + id);
+  if (!r.ok) { box.innerHTML = '<div class="meta">Could not load officers.</div>'; return; }
+  if (!r.data.length) {
+    box.innerHTML = '<div class="meta">No officer matches this case (state / city / specialization). Add one in officers.json.</div>';
+    return;
+  }
+  box.innerHTML = '<select id="sel' + id + '">' + r.data.map(o =>
+    '<option value="' + o.id + '">' + esc(o.name) + ' — ' + esc(o.station) + ' (' + esc(o.city) + ') · ' + esc(o.specialization) + '</option>'
+  ).join('') + '</select><div><button class="btn good" onclick="assign(' + id + ')">Confirm assignment</button></div>';
+}
+
+async function assign(id) {
+  const officerId = document.getElementById('sel' + id).value;
+  const r = await post('/api/admin', { complaintId: id, officerId });
+  banner('msg', r.ok, r.data.message || 'Something went wrong.');
+  load();
+}
+
+guard('admin').then(ok => { if (ok) { load(); loadRagging(); CR.init(); } });
+</script>
+<script src="assistant.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: surakshasetu
+    runtime: docker
+    plan: free
+    healthCheckPath: /SurakshaSetu/index.html
+    envVars:
+      - key: MAIL_USER
+        value: surakshasetucrime@gmail.com
+      - key: MAIL_PASSWORD
+        sync: false        # enter in the Render dashboard (Gmail app password)
+      - key: GROQ_API_KEY
+        sync: false        # optional: enables the AI assistant

@@ -1,0 +1,27 @@
+# build output
+target/
+*.war
+# IDE
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+# secrets (never commit)
+mail.properties
+.env
+# personal / runtime data (created by the app at run time)
+data/users.json
+data/complaints.json
+data/*.log
+users.json
+SurakshaSetu.json
+copy
+# keep seed data that the app needs
+!data/officers.json
+!data/admins.json
+
+bin/
+data/*
+!data/officers.json
+!data/admins.json

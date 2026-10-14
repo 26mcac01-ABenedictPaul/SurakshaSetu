@@ -1,0 +1,11 @@
+target/
+.git/
+.classpath
+.project
+.settings/
+mail.properties
+users.json
+SurakshaSetu.json
+copy
+data/users.json
+data/complaints.json

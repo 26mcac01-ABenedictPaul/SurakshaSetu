@@ -1,0 +1,28 @@
+/* Phone / touch polish shared by every page. Loaded last so it wins over page styles. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, a, select, input, textarea, [role="button"], [role="tab"] { touch-action: manipulation; }
+img, video, svg, canvas { max-width: 100%; }
+body { overflow-wrap: break-word; }
+
+@media (max-width: 700px) {
+  /* 16px inputs stop iOS Safari zooming the page when a field is focused */
+  input, select, textarea { font-size: 16px !important; }
+  /* comfortable thumb-sized targets */
+  button, .btn, select, input[type="checkbox"] + label { min-height: 44px; }
+  #hubMenu, .hubMenu { min-width: 44px; min-height: 44px; }
+  /* never let wide content (tables, code, cards) push the page sideways */
+  table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  pre, code { white-space: pre-wrap; word-break: break-word; }
+  .card, .panel, section { max-width: 100%; }
+  /* keep floating buttons clear of the iPhone home bar */
+  .sos, #sos, .fab, #hd-fab { margin-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+@media (max-width: 380px) {
+  body { font-size: 15px; }
+}
+
+/* landscape phones: keep the notch area free */
+@supports (padding: max(0px)) {
+  body { padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
+}

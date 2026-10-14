@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SurakshaSetu — Officer Desk</title>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="crime.css">
+<link rel="stylesheet" href="officer-hub.css">
+<meta name="theme-color" content="#0B1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<header>
+  <div class="brand">Suraksha<span>Setu</span> &middot; Officer</div>
+  <div class="who" id="who"></div>
+  <a class="btn" href="logout">Log out</a>
+</header>
+
+<nav class="navtabs" id="nav">
+  <button data-t="cases" class="on">Cases</button>
+  <button data-t="appt">Appointments<span class="dot" id="apptDot" style="display:none"></span></button>
+  <button data-t="concerns">Concerns<span class="dot" id="cnDot" style="display:none"></span></button>
+  <button data-t="chat">Messages</button>
+</nav>
+
+<main>
+  <div class="banner" id="msg"></div>
+
+  <section class="tabpane on" id="t-cases">
+    <div><h2>Awaiting your response</h2><div class="cases" id="awaiting"><div class="empty">Loading…</div></div></div>
+    <div><h2>My active cases</h2><div class="cases" id="active"><div class="empty">Loading…</div></div></div>
+  </section>
+
+  <section class="tabpane" id="t-appt">
+    <div><h2>Appointment requests</h2><div class="cases" id="pendingAppts"><div class="empty">Loading…</div></div></div>
+    <div><h2>Answered</h2><div class="cases" id="doneAppts"></div></div>
+  </section>
+
+  <section class="tabpane" id="t-concerns">
+    <p class="hint">Quick reports from citizens in your city, with photos, videos and voice notes. Newest first.</p>
+    <div class="cases" id="concerns"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section class="tabpane" id="t-chat">
+    <div class="msg" id="msgBox">
+      <div class="list"><h3>Citizen messages</h3><div id="convs"><div class="empty">Loading…</div></div></div>
+      <div class="thread" id="thread"><div class="nothread">Select a conversation to reply.</div></div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+<script src="officer-report.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function toast(t){ const e=$('toast'); e.textContent=t; e.classList.add('show'); clearTimeout(toast.h); toast.h=setTimeout(()=>e.classList.remove('show'),4000); }
+function hhmm(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?'':d.toLocaleString('en-IN',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}); }
+function ini(n){ return (n||'?').split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+function show(t){
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  document.querySelectorAll('.tabpane').forEach(p=>p.classList.toggle('on', p.id==='t-'+t));
+  if (t==='appt') loadAppts(); if (t==='chat') loadConvs(); if (t==='cases') load(); if (t==='concerns') loadConcerns();
+}
+$('nav').addEventListener('click', e => { const b=e.target.closest('button'); if(b) show(b.dataset.t); });
+
+/* ----- cases (unchanged behaviour) ----- */
+async function load() {
+  const r = await api('/api/complaints');
+  if (!r.ok) return;
+  const awaiting = r.data.filter(c => c.status.indexOf('Awaiting') >= 0);
+  const active = r.data.filter(c => c.status === 'Under Investigation');
+  $('awaiting').innerHTML = awaiting.length
+    ? awaiting.map(c => caseCard(c,
+        '<div class="actions">' +
+        '<button class="btn good" onclick="act(' + c.id + ',\'accept\')">Accept case</button>' +
+        '<button class="btn bad" onclick="act(' + c.id + ',\'decline\')">Decline</button></div>', true)).join('')
+    : '<div class="empty">No new cases assigned to you.</div>';
+  $('active').innerHTML = active.length
+    ? active.map(c => caseCard(c, '<div class="actions"><button class="btn primary" onclick="openReport(' + c.id + ')">Submit investigation report</button></div>', true)).join('')
+    : '<div class="empty">You have no active cases yet.</div>';
+}
+async function act(id, action) {
+  if (action === 'decline' && !confirm('Decline case #' + id + '? It will go back to the admin for reassignment.')) return;
+  const r = await post('/api/officer', { action, complaintId: id });
+  banner('msg', r.ok, r.data.message || 'Something went wrong.');
+  load();
+}
+
+/* ----- appointments ----- */
+async function loadAppts(){
+  const r = await api('/api/appointments'); if (!r.ok) return;
+  const pend = r.data.filter(a => a.status==='Pending'), done = r.data.filter(a => a.status!=='Pending');
+  const dot = $('apptDot'); dot.style.display = pend.length ? 'inline-block' : 'none'; dot.textContent = pend.length;
+  $('pendingAppts').innerHTML = pend.length ? pend.map(a =>
+    '<div class="card appt"><div class="row"><b>'+esc(a.userName)+'</b><span class="chip Pending">⏳ Pending</span></div>'+
+    '<div class="meta">'+esc(a.purpose)+' &middot; requested '+esc(hhmm(a.createdAt))+'</div>'+
+    '<div>📅 <b>'+esc(a.date)+'</b> at <b>'+esc(a.time)+'</b></div>'+
+    '<input id="note-'+a.appointmentId+'" placeholder="Optional note to the citizen (e.g. bring ID, use Gate 2)" maxlength="300" style="margin-top:6px">'+
+    '<div class="actions"><button class="btn good" onclick="answer('+a.appointmentId+',\'accept\')">Accept</button>'+
+    '<button class="btn bad" onclick="answer('+a.appointmentId+',\'decline\')">Decline</button></div></div>').join('')
+    : '<div class="empty">No pending appointment requests.</div>';
+  $('doneAppts').innerHTML = done.map(a =>
+    '<div class="card appt"><div class="row"><b>'+esc(a.userName)+'</b><span class="chip '+esc(a.status)+'">'+esc(a.status)+'</span></div>'+
+    '<div class="meta">'+esc(a.purpose)+'</div><div>📅 '+esc(a.date)+' at '+esc(a.time)+'</div>'+
+    (a.note?'<div class="reply">'+esc(a.note)+'</div>':'')+'</div>').join('');
+}
+async function answer(id, action){
+  const note = ($('note-'+id)||{}).value || '';
+  const r = await post('/api/appointments', { action, appointmentId:id, note });
+  banner('msg', r.ok, r.data.message || 'Something went wrong.');
+  loadAppts();
+}
+
+/* ----- citizen concerns (photo / video / voice reports) ----- */
+async function loadConcerns(){
+  const r = await api('/api/concern'); if (!r.ok) return;
+  const open = r.data.filter(c => c.status === 'Reported').length;
+  const d = $('cnDot'); d.style.display = open ? 'inline-block' : 'none'; d.textContent = open;
+  if (!$('t-concerns').classList.contains('on')) return;
+  $('concerns').innerHTML = r.data.length ? r.data.map(c => concernCard(c, concernActions(c))).join('') : '<div class="empty">No concerns reported in your city.</div>';
+}
+async function setConcern(id){
+  const r = await post('/api/concern', { action:'status', concernId:id, status:$('cs'+id).value, note:($('cn-note'+id)||{}).value || '' });
+  banner('msg', r.ok, r.data.message || 'Something went wrong.'); loadConcerns();
+}
+
+/* ----- messages ----- */
+let activeUser = null, timer = null, lastCount = 0;
+async function loadConvs(){
+  const r = await api('/api/chat'); if (!r.ok) return;
+  $('convs').innerHTML = r.data.length ? r.data.map(c =>
+    '<div class="conv'+(activeUser===c.userId?' on':'')+'" data-u="'+c.userId+'"><div class="av">'+esc(ini(c.name))+'</div>'+
+    '<div class="t"><b>'+esc(c.name)+'</b><span>'+(c.lastSender==='officer'?'You: ':'')+esc(c.lastText)+'</span></div></div>').join('')
+    : '<div class="empty">No messages from citizens yet.</div>';
+}
+$('convs').addEventListener('click', e => { const c=e.target.closest('.conv'); if(c) openThread(parseInt(c.dataset.u,10), c.querySelector('b').textContent); });
+async function openThread(uid, name){
+  activeUser = uid; lastCount = 0;
+  $('msgBox').classList.add('open');
+  $('thread').innerHTML = '<div class="head"><button class="btn back" id="back">←</button><div class="av">'+esc(ini(name))+'</div><b>'+esc(name)+'</b></div>'+
+    '<div class="body" id="tbody"></div>'+
+    '<form id="tform"><input id="tinput" placeholder="Reply…" autocomplete="off" maxlength="1000"><button class="btn primary" type="submit">Send</button></form>';
+  $('back').onclick = () => { $('msgBox').classList.remove('open'); activeUser=null; clearInterval(timer); loadConvs(); };
+  $('tform').onsubmit = async ev => { ev.preventDefault(); const t=$('tinput').value.trim(); if(!t) return; $('tinput').value='';
+    const r = await post('/api/chat', { userId:uid, text:t }); if(!r.ok) toast(r.data.message||'Not sent.'); refresh(true); loadConvs(); };
+  await refresh(true); loadConvs();
+  clearInterval(timer); timer = setInterval(() => { refresh(false); }, 4000);
+}
+async function refresh(force){
+  if (activeUser===null) return;
+  const r = await api('/api/chat?userId='+activeUser); if(!r.ok) return;
+  const body = $('tbody'); if(!body) return;
+  if (!force && r.data.length===lastCount) return; lastCount = r.data.length;
+  body.innerHTML = r.data.map(m => '<div class="bub '+(m.sender==='officer'?'me':'them')+'">'+esc(m.text)+'<small>'+esc(hhmm(m.time))+'</small></div>').join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+guard('officer').then(ok => { if (ok) { load(); loadAppts(); loadConcerns();
+  setInterval(() => { load(); api('/api/appointments').then(r => { if(!r.ok) return; const n=r.data.filter(a=>a.status==='Pending').length; const d=$('apptDot'); d.style.display=n?'inline-block':'none'; d.textContent=n; }); if ($('t-chat').classList.contains('on')) loadConvs(); loadConcerns(); }, 15000); } });
+</script>
+<script src="officer-hub.js"></script>
+<script src="assistant.js"></script>
+</body>
+</html>

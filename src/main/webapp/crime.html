@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SurakshaSetu — AI Crime Dashboard</title>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.tabs button{padding:10px 16px;border-radius:8px;border:1px solid var(--line);background:var(--steel);color:var(--paper);cursor:pointer;font-weight:600}
+.tabs button.on{background:var(--amber);color:#1a1200;border-color:var(--amber)}
+.pane{display:none}.pane.on{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.bars div.row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.85rem}
+.bars .lbl{width:150px;color:var(--muted)}
+.bars .bar{height:12px;border-radius:6px;background:var(--amber);transition:width .8s}
+#map{height:520px;border-radius:12px;border:1px solid var(--line)}
+canvas#net{width:100%;height:520px;background:radial-gradient(circle at 50% 40%,#16233a,#0B1220);border-radius:12px;border:1px solid var(--line)}
+.ticker{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:.9rem;overflow:hidden;white-space:nowrap}
+.ticker span{display:inline-block;animation:slide 28s linear infinite;padding-left:100%}
+@keyframes slide{to{transform:translateX(-100%)}}
+.live{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:6px;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.card .top{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{font-size:.72rem;padding:3px 8px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
+.chip.Open{color:var(--red);border-color:var(--red)}.chip.Solved{color:var(--green);border-color:var(--green)}
+.chip.UI{color:var(--blue);border-color:var(--blue)}.chip.RS{color:var(--amber);border-color:var(--amber)}
+.mugs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.mug{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;cursor:pointer}
+.mug:hover{border-color:var(--amber)}
+.mug svg{width:90px;height:90px}
+/* movie-style case board */
+.board{background:#3b2a1a repeating-linear-gradient(45deg,#4a361f 0 6px,#3b2a1a 6px 12px);border:6px solid #1b120a;border-radius:10px;padding:18px;position:relative;color:#222}
+.dossier{display:grid;grid-template-columns:200px 1fr;gap:18px}
+@media(max-width:700px){.dossier{grid-template-columns:1fr}}
+.polaroid{background:#f4efe3;padding:10px 10px 28px;transform:rotate(-2.5deg);box-shadow:0 6px 14px #0008;text-align:center;font-family:'Courier New',monospace;font-weight:700;position:relative}
+.polaroid:before{content:"";position:absolute;top:-8px;left:50%;width:14px;height:14px;border-radius:50%;background:#d33;box-shadow:0 2px 3px #0008}
+.stamp{display:inline-block;border:3px solid #c1272d;color:#c1272d;padding:2px 10px;font:700 1.2rem 'Courier New',monospace;transform:rotate(-8deg);margin-top:8px;letter-spacing:2px}
+.sheet{background:#f4efe3;padding:14px;font-family:'Courier New',monospace;font-size:.88rem;box-shadow:0 6px 14px #0008;transform:rotate(.6deg)}
+.sheet h3{margin:0 0 6px;font-size:1.05rem}
+.sheet table{width:100%;border-collapse:collapse}.sheet td{border-bottom:1px dashed #999;padding:3px 4px}
+.note{background:#ffe97a;display:inline-block;padding:6px 10px;margin:4px;font:600 .8rem 'Courier New',monospace;transform:rotate(-1.5deg);box-shadow:0 3px 6px #0006}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Suraksha<span>Setu</span> &middot; AI Crime Dashboard</div>
+  <div class="who" id="who"></div>
+  <div><a class="btn" href="admin.html">&larr; Admin home</a> <a class="btn" href="logout">Log out</a></div>
+</header>
+<main>
+  <div class="banner" id="msg"></div>
+  <div class="ticker"><span class="live"></span><span id="tick">Loading live feed…</span></div>
+  <div class="tabs" id="tabs">
+    <button class="on" data-p="dash">SurakshaSetu AI Crime Dashboard</button>
+    <button data-p="assign">Assign Police</button>
+    <button data-p="prone">Crime-Prone Areas</button>
+    <button data-p="link">Accused Link (Map / Graph)</button>
+    <button data-p="info">Accused Information</button>
+    <button data-p="report">Submit Investigation Report</button>
+  </div>
+
+  <div class="pane on" id="dash">
+    <div class="stats" id="stats"></div>
+    <div class="grid2">
+      <div class="panel"><h2>Crimes by type</h2><div class="bars" id="byType"></div></div>
+      <div class="panel"><h2>Hotspot areas</h2><div class="bars" id="byArea"></div></div>
+    </div>
+    <div class="panel" style="margin-top:16px"><h2>Latest solved cases &amp; reports</h2><div id="reports"></div></div>
+  </div>
+
+  <div class="pane" id="assign">
+    <div class="panel"><h2>Register new incident</h2>
+      <div class="two">
+        <div><label>Crime type</label><select id="nt"><option>Robbery</option><option>Chain Snatching</option><option>Murder</option><option>Assault</option><option>Burglary</option><option>Vehicle Theft</option><option>Cyber Fraud</option><option>Drug Peddling</option></select></div>
+        <div><label>Area</label><select id="na"></select></div>
+      </div>
+      <label>Description</label><input id="nd" placeholder="What happened?">
+      <p><button class="btn primary" onclick="addCase()">Register incident</button></p>
+    </div>
+    <div id="assignList"></div>
+  </div>
+
+  <div class="pane" id="prone">
+    <div class="panel"><h2>Crime-prone regions</h2><div id="map"></div>
+    <p class="hint">Circle size and colour = number of incidents. Click a circle for details. Markers = individual cases.</p></div>
+  </div>
+
+  <div class="pane" id="link">
+    <div class="panel"><h2>Accused ↔ Crime ↔ Area links</h2>
+      <p class="hint">Animated network: orange = accused, blue = crime case, green = area. Drag nodes, hover to highlight, click an accused to open the dossier.</p>
+      <canvas id="net" height="520"></canvas>
+      <div class="card" id="netInfo">Hover a node to see connections.</div>
+    </div>
+  </div>
+
+  <div class="pane" id="info">
+    <div class="mugs" id="mugs"></div>
+    <div id="dossier" style="margin-top:16px"></div>
+  </div>
+
+  <div class="pane" id="report">
+    <div class="panel"><h2>Officer's investigation report → crime analytics</h2>
+      <label>Case</label><select id="rc"></select>
+      <div class="two">
+        <div><label>Accused name</label><input id="ra" placeholder="e.g. Arun Kumar (existing names get linked)"></div>
+        <div><label>Alias</label><input id="ral"></div>
+      </div>
+      <div class="two">
+        <div><label>Type of accused / crime</label><input id="rat" placeholder="Robbery / Chain snatching"></div>
+        <div><label>Outcome</label><select id="ro"><option>Solved</option><option>Pending court</option><option>Under watch</option></select></div>
+      </div>
+      <label>Cause of crime</label><input id="rcause">
+      <label>Other suspects</label><input id="rs">
+      <label>Details of the investigation</label><textarea id="rd" rows="4"></textarea>
+      <p><button class="btn good" onclick="submitReport()">Store report</button></p>
+    </div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+let D={cases:[],accused:[],officers:[]}, map, layer, netNodes=[], netEdges=[], hover=null, drag=null, raf;
+const AREAS={"MG Road":[12.9756,77.6068],"Kammanahalli":[13.0136,77.6402],"Majestic":[12.9767,77.5713],"Koramangala":[12.9352,77.6245],"Indiranagar":[12.9784,77.6408],"Whitefield":[12.9698,77.7499],"Electronic City":[12.8452,77.6602],"Yeshwanthpur":[13.0285,77.5409],"Jayanagar":[12.9308,77.5838],"Marathahalli":[12.9591,77.6974]};
+const accOf=id=>D.accused.find(a=>a.id===id);
+const casesOf=id=>D.cases.filter(c=>c.accused.includes(id));
+const count=(arr,f)=>{const m={};arr.forEach(x=>{const k=f(x);m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+
+document.getElementById('tabs').onclick=e=>{const p=e.target.dataset.p;if(!p)return;
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b===e.target));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.toggle('on',x.id===p));
+  if(p==='prone')setTimeout(drawMap,50); if(p==='link')setTimeout(initNet,50);};
+
+async function refresh(){
+  const r=await api('/api/crime'); if(!r.ok)return; D=r.data;
+  D.cases.forEach(c=>c.accused=c.accused||[]);
+  renderDash();renderAssign();renderMugs();fillSelects();
+  if(document.getElementById('prone').classList.contains('on'))drawMap();
+}
+function renderDash(){
+  const c=D.cases, open=c.filter(x=>x.status==='Open').length, inv=c.filter(x=>x.status==='Under Investigation').length, sol=c.filter(x=>x.status==='Solved').length;
+  document.getElementById('stats').innerHTML=stat(c.length,'Total crimes')+stat(open,'Unassigned')+stat(inv,'Under investigation')+stat(sol,'Solved')+stat(D.accused.length,'Known accused');
+  const bar=(list)=>{const mx=list[0]?list[0][1]:1;return list.slice(0,8).map(([k,v])=>`<div class="row"><span class="lbl">${esc(k)}</span><div class="bar" style="width:${v/mx*60}%"></div><b>${v}</b></div>`).join('')};
+  document.getElementById('byType').innerHTML=bar(count(c,x=>x.type));
+  document.getElementById('byArea').innerHTML=bar(count(c,x=>x.area));
+  const rep=c.filter(x=>x.report).sort((a,b)=>b.report.submittedOn.localeCompare(a.report.submittedOn)).slice(0,6);
+  document.getElementById('reports').innerHTML=rep.length?rep.map(x=>`<div class="card"><div class="top"><b>#${x.id} ${esc(x.type)}</b><span class="chip">${esc(x.area)}</span><span class="chip ${x.status==='Solved'?'Solved':'RS'}">${esc(x.status)}</span></div>
+    <div class="meta">Accused: ${x.accused.map(i=>esc((accOf(i)||{}).name)).join(', ')||'—'} · Cause: ${esc(x.report.cause)} · Suspects: ${esc(x.report.suspects)}</div><p>${esc(x.report.details)}</p></div>`).join(''):'<div class="empty">No reports yet.</div>';
+  const t=[...c].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(x=>`${x.type} at ${x.area} (${x.date}) — ${x.status}`).join('   •   ');
+  document.getElementById('tick').textContent=t;
+}
+function stat(n,l){return `<div class="stat"><b>${n}</b><span>${l}</span></div>`}
+function renderAssign(){
+  const list=D.cases.filter(x=>x.status==='Open'||x.status==='Under Investigation');
+  document.getElementById('assignList').innerHTML=list.map(x=>`<div class="card"><div class="top"><b>#${x.id} ${esc(x.type)}</b><span class="chip">${esc(x.area)}</span><span class="chip ${x.status==='Open'?'Open':'UI'}">${esc(x.status)}</span><span class="meta">${esc(x.date)}</span></div>
+   <p>${esc(x.description)}</p><div class="actions">
+   <select id="o${x.id}">${D.officers.map(o=>`<option${o===x.officer?' selected':''}>${esc(o)}</option>`).join('')}</select>
+   <button class="btn primary" onclick="assignCase(${x.id})">${x.officer?'Reassign':'Assign'}</button></div></div>`).join('')||'<div class="empty">All cases handled.</div>';
+}
+function fillSelects(){
+  document.getElementById('na').innerHTML=Object.keys(AREAS).map(a=>`<option>${a}</option>`).join('');
+  const sel=document.getElementById('rc'),v=sel.value;
+  sel.innerHTML=D.cases.filter(x=>x.status!=='Solved').map(x=>`<option value="${x.id}">#${x.id} ${esc(x.type)} — ${esc(x.area)}</option>`).join('');
+  if(v)sel.value=v;
+}
+async function assignCase(id){const r=await post('/api/crime',{action:'assign',caseId:id,officer:document.getElementById('o'+id).value});banner('msg',r.ok,r.data.message);refresh();}
+async function addCase(){const a=document.getElementById('na').value,ll=AREAS[a];
+  const r=await post('/api/crime',{action:'addcase',type:document.getElementById('nt').value,area:a,lat:ll[0]+(Math.random()-.5)*.008,lng:ll[1]+(Math.random()-.5)*.008,description:document.getElementById('nd').value||'New incident'});
+  banner('msg',r.ok,r.data.message);document.getElementById('nd').value='';refresh();}
+async function submitReport(){
+  const g=i=>document.getElementById(i).value;
+  const r=await post('/api/crime',{action:'report',caseId:g('rc'),accused:g('ra'),alias:g('ral'),accusedType:g('rat'),cause:g('rcause'),suspects:g('rs'),details:g('rd'),outcome:g('ro')});
+  banner('msg',r.ok,r.data.message);['ra','ral','rat','rcause','rs','rd'].forEach(i=>document.getElementById(i).value='');refresh();}
+
+/* ---------- crime-prone map ---------- */
+function drawMap(){
+  if(!map){map=L.map('map').setView([12.9716,77.5946],11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);layer=L.layerGroup().addTo(map);}
+  map.invalidateSize();layer.clearLayers();
+  count(D.cases,x=>x.area).forEach(([a,n])=>{const ll=AREAS[a];if(!ll)return;
+    const col=n>=7?'#E5534B':n>=4?'#F4A300':'#3DBE7A';
+    L.circle(ll,{radius:500+n*160,color:col,fillColor:col,fillOpacity:.3}).addTo(layer)
+     .bindPopup(`<b>${a}</b><br>${n} incidents<br>${count(D.cases.filter(x=>x.area===a),x=>x.type).map(t=>t.join(': ')).join('<br>')}`);});
+  D.cases.forEach(c=>L.circleMarker([c.lat,c.lng],{radius:4,color:'#fff',weight:1,fillColor:c.status==='Open'?'#E5534B':'#3A86FF',fillOpacity:1}).addTo(layer)
+    .bindPopup(`#${c.id} ${c.type}<br>${c.status}<br>${c.accused.map(i=>(accOf(i)||{}).name).join(', ')}`));
+}
+
+/* ---------- animated link graph ---------- */
+function initNet(){
+  const cv=document.getElementById('net');cv.width=cv.clientWidth;cv.height=520;
+  netNodes=[];netEdges=[];const W=cv.width,H=520,idx={};
+  const add=(key,o)=>{if(idx[key]!==undefined)return idx[key];idx[key]=netNodes.length;netNodes.push(Object.assign({x:W/2+(Math.random()-.5)*300,y:H/2+(Math.random()-.5)*300,vx:0,vy:0},o));return idx[key]};
+  D.accused.forEach(a=>add('a'+a.id,{t:'acc',label:a.alias||a.name,ref:a.id,r:16,col:'#F4A300'}));
+  Object.keys(AREAS).forEach(a=>{ if(D.cases.some(c=>c.area===a&&c.accused.length))add('r'+a,{t:'area',label:a,r:12,col:'#3DBE7A'})});
+  D.cases.filter(c=>c.accused.length).forEach(c=>{const ci=add('c'+c.id,{t:'case',label:'#'+c.id+' '+c.type,ref:c.id,r:7,col:'#3A86FF'});
+    netEdges.push([ci,idx['r'+c.area],0]);c.accused.forEach(i=>netEdges.push([idx['a'+i],ci,Math.random()]));});
+  cancelAnimationFrame(raf);loop();
+  cv.onmousemove=e=>{const p=pos(e,cv);if(drag){drag.x=p.x;drag.y=p.y;drag.vx=drag.vy=0;}hover=netNodes.find(n=>Math.hypot(n.x-p.x,n.y-p.y)<n.r+4)||null;cv.style.cursor=hover?'pointer':'default';info();};
+  cv.onmousedown=e=>{drag=hover;};cv.onmouseup=()=>drag=null;
+  cv.onclick=e=>{if(hover&&hover.t==='acc'){openDossier(hover.ref);tab('info');}};
+}
+const pos=(e,cv)=>{const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+function tab(p){document.querySelector(`.tabs button[data-p=${p}]`).click()}
+function info(){const el=document.getElementById('netInfo');if(!hover){el.textContent='Hover a node to see connections.';return}
+  if(hover.t==='acc'){const a=accOf(hover.ref);const cs=casesOf(a.id);el.innerHTML=`<b>${esc(a.name)}</b> “${esc(a.alias)}” — ${esc(a.type)}<br>Found in ${cs.length} cases across: ${[...new Set(cs.map(c=>c.area))].map(esc).join(', ')}`;}
+  else if(hover.t==='case'){const c=D.cases.find(x=>x.id===hover.ref);el.innerHTML=`<b>#${c.id} ${esc(c.type)}</b> at ${esc(c.area)} (${esc(c.date)}) — ${esc(c.status)}<br>Accused: ${c.accused.map(i=>esc(accOf(i).name)).join(', ')}`;}
+  else{const cs=D.cases.filter(c=>c.area===hover.label&&c.accused.length);el.innerHTML=`<b>${esc(hover.label)}</b> — ${cs.length} linked cases<br>Repeat offenders: ${[...new Set(cs.flatMap(c=>c.accused.map(i=>accOf(i).alias)))].map(esc).join(', ')}`;}}
+function loop(){
+  const cv=document.getElementById('net');if(!cv||!document.getElementById('link').classList.contains('on')){return}
+  const c=cv.getContext('2d'),W=cv.width,H=cv.height,t=Date.now()/1000;
+  for(const a of netNodes){for(const b of netNodes){if(a===b)continue;let dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy)||1;if(d<140){a.vx+=dx/d*(140-d)*.012;a.vy+=dy/d*(140-d)*.012}}
+    a.vx+=(W/2-a.x)*.0009;a.vy+=(H/2-a.y)*.0009;}
+  for(const [i,j] of netEdges){const a=netNodes[i],b=netNodes[j];if(!b)continue;const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,f=(d-90)*.004;a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f;}
+  for(const n of netNodes){if(n===drag)continue;n.vx*=.85;n.vy*=.85;n.x=Math.min(W-20,Math.max(20,n.x+n.vx));n.y=Math.min(H-20,Math.max(20,n.y+n.vy));}
+  c.clearRect(0,0,W,H);
+  const hl=n=>!hover||n===hover||netEdges.some(([i,j])=>(netNodes[i]===hover&&netNodes[j]===n)||(netNodes[j]===hover&&netNodes[i]===n));
+  for(const [i,j,ph] of netEdges){const a=netNodes[i],b=netNodes[j];if(!b)continue;const on=!hover||a===hover||b===hover;
+    c.strokeStyle=on?'rgba(244,163,0,.55)':'rgba(236,232,223,.07)';c.lineWidth=on?1.6:1;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
+    if(on&&a.t==='acc'){const p=(t*.4+ph)%1;c.fillStyle='#fff';c.beginPath();c.arc(a.x+(b.x-a.x)*p,a.y+(b.y-a.y)*p,2.6,0,7);c.fill();}}
+  for(const n of netNodes){c.globalAlpha=hl(n)?1:.2;const g=n.t==='acc'?6+Math.sin(t*3)*3:0;
+    c.shadowColor=n.col;c.shadowBlur=n.t==='acc'?14+g:6;c.fillStyle=n.col;c.beginPath();c.arc(n.x,n.y,n.r+(n===hover?3:0),0,7);c.fill();c.shadowBlur=0;
+    if(n.t!=='case'||n===hover){c.fillStyle='#ECE8DF';c.font=(n.t==='acc'?'bold ':'')+'12px Inter,sans-serif';c.textAlign='center';c.fillText(n.label,n.x,n.y-n.r-6);}c.globalAlpha=1;}
+  raf=requestAnimationFrame(loop);
+}
+
+/* ---------- accused information (movie-style dossier) ---------- */
+function face(a){const h=(a.id*57)%360;
+  return `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="hsl(${h},20%,30%)"/><circle cx="50" cy="38" r="20" fill="hsl(${h},25%,70%)"/><path d="M12 100c2-30 20-38 38-38s36 8 38 38z" fill="hsl(${h},25%,55%)"/><rect x="30" y="34" width="40" height="7" fill="#111" opacity=".75"/></svg>`;}
+function renderMugs(){document.getElementById('mugs').innerHTML=D.accused.map(a=>`<div class="mug" onclick="openDossier(${a.id})">${face(a)}<div><b>${esc(a.name)}</b></div><div class="meta">“${esc(a.alias)}”</div><div class="meta">${casesOf(a.id).length} cases</div></div>`).join('')}
+function openDossier(id){const a=accOf(id),cs=casesOf(id);const areas=count(cs,c=>c.area),kinds=count(cs,c=>c.type);
+  const murders=cs.filter(c=>c.type==='Murder').length, solved=cs.filter(c=>c.status==='Solved').length;
+  const threat=cs.length>=6?'HIGH':cs.length>=4?'MEDIUM':'LOW';
+  const partners=[...new Set(cs.flatMap(c=>c.accused).filter(i=>i!==id))].map(i=>accOf(i).alias||accOf(i).name);
+  document.getElementById('dossier').innerHTML=`<div class="board"><div class="dossier">
+   <div><div class="polaroid">${face(a)}<div>${esc(a.alias||a.name)}</div></div><div style="text-align:center"><span class="stamp">${threat} RISK</span></div></div>
+   <div class="sheet"><h3>CASE FILE · ${esc(a.name.toUpperCase())}</h3>
+    <table><tr><td>Alias</td><td>${esc(a.alias)}</td></tr><tr><td>Age</td><td>${a.age||'Unknown'}</td></tr><tr><td>Type</td><td>${esc(a.type)}</td></tr>
+    <tr><td>Total cases</td><td>${cs.length} (solved ${solved})</td></tr><tr><td>Murders</td><td>${murders}</td></tr>
+    <tr><td>Known associates</td><td>${partners.map(esc).join(', ')||'None recorded'}</td></tr><tr><td>Notes</td><td>${esc(a.notes)}</td></tr></table>
+    <p><b>OPERATES IN:</b></p>${areas.map(([k,v])=>`<span class="note">${esc(k)} ×${v}</span>`).join('')}
+    <p><b>CRIME HISTORY:</b></p>${kinds.map(([k,v])=>`<span class="note" style="background:#ffb3a7">${esc(k)} ×${v}</span>`).join('')}
+    <p><b>LINKED CASES:</b></p><table>${cs.map(c=>`<tr><td>#${c.id}</td><td>${esc(c.type)}</td><td>${esc(c.area)}</td><td>${esc(c.date)}</td><td>${esc(c.status)}${c.report?' · cause: '+esc(c.report.cause):''}</td></tr>`).join('')}</table>
+   </div></div></div>`;
+  document.getElementById('dossier').scrollIntoView({behavior:'smooth'});}
+
+guard('admin').then(ok=>{if(ok){refresh();setInterval(refresh,10000);}});
+</script>
+</body>
+</html>
