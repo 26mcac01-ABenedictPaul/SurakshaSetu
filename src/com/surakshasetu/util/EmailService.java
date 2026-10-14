@@ -9,6 +9,17 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
 import java.util.Properties;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.google.gson.Gson;
 
 import com.surakshasetu.model.Complaint;
 import com.surakshasetu.model.Officer;
@@ -20,6 +31,52 @@ public class EmailService {
     // (git-ignored) containing:  mail.user=you@gmail.com   mail.password=your-16-char-app-password
     private static final String FROM_EMAIL = setting("MAIL_USER", "mail.user", "surakshasetucrime@gmail.com");
     private static final String APP_PASSWORD = setting("MAIL_PASSWORD", "mail.password", "").replace(" ", "");
+
+    // Optional: Brevo (https://www.brevo.com) sends mail over HTTPS (port 443), which works on hosts that block
+    // SMTP, such as Render's free plan. MAIL_USER must be a sender address verified in Brevo.
+    private static final String BREVO_API_KEY = setting("BREVO_API_KEY", "brevo.key", "");
+
+    /** Sends through Brevo's HTTPS API when BREVO_API_KEY is set, otherwise through Gmail SMTP. */
+    private static void deliver(Message message) throws MessagingException {
+        if (BREVO_API_KEY.isEmpty()) {
+            Transport.send(message);
+            return;
+        }
+        try {
+            List<Map<String, String>> to = new ArrayList<>();
+            for (jakarta.mail.Address a : message.getRecipients(Message.RecipientType.TO)) {
+                Map<String, String> r = new LinkedHashMap<>();
+                r.put("email", ((InternetAddress) a).getAddress());
+                to.add(r);
+            }
+            Map<String, String> sender = new LinkedHashMap<>();
+            sender.put("name", "SurakshaSetu");
+            sender.put("email", FROM_EMAIL);
+
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("sender", sender);
+            body.put("to", to);
+            body.put("subject", message.getSubject());
+            body.put("textContent", String.valueOf(message.getContent()));
+
+            HttpRequest req = HttpRequest.newBuilder(URI.create("https://api.brevo.com/v3/smtp/email"))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("api-key", BREVO_API_KEY)
+                    .header("content-type", "application/json")
+                    .header("accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(new Gson().toJson(body)))
+                    .build();
+            HttpResponse<String> resp = HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() / 100 != 2) {
+                throw new MessagingException("Brevo error " + resp.statusCode() + ": " + resp.body());
+            }
+        } catch (java.io.IOException e) {
+            throw new MessagingException("Brevo request failed: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new MessagingException("Brevo request interrupted", e);
+        }
+    }
 
     private static String setting(String envName, String propName, String fallback) {
         String v = System.getenv(envName);
@@ -38,8 +95,8 @@ public class EmailService {
     }
 
     private static Session getSession() {
-        if (APP_PASSWORD.isEmpty()) {
-            System.out.println("⚠️ Email is not configured: set MAIL_PASSWORD (Gmail app password). Emails will fail.");
+        if (APP_PASSWORD.isEmpty() && BREVO_API_KEY.isEmpty()) {
+            System.out.println("⚠️ Email is not configured: set BREVO_API_KEY (or MAIL_PASSWORD for Gmail). Emails will fail.");
         }
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
@@ -68,7 +125,7 @@ public class EmailService {
             message.setText("Your OTP for password reset is: " + otp +
                     "\n\nThis code is valid for this session only. If you did not request this, please ignore this email.");
 
-            Transport.send(message);
+            deliver(message);
             System.out.println("✅ OTP sent to " + toEmail);
 
         } catch (MessagingException e) {
@@ -96,7 +153,7 @@ public class EmailService {
                 "Team SurakshaSetu"
             );
 
-            Transport.send(message);
+            deliver(message);
             System.out.println("✅ Welcome email sent to " + toEmail);
 
         } catch (MessagingException e) {
@@ -129,7 +186,7 @@ public class EmailService {
                 "Team SurakshaSetu"
             );
 
-            Transport.send(message);
+            deliver(message);
             System.out.println("✅ Complaint confirmation email sent to " + toEmail);
 
         } catch (MessagingException e) {
@@ -166,7 +223,7 @@ public class EmailService {
                 "Team SurakshaSetu"
             );
 
-            Transport.send(message);
+            deliver(message);
             System.out.println("✅ Case acceptance email sent to " + toEmail);
 
         } catch (MessagingException e) {

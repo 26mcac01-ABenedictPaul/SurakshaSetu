@@ -7,7 +7,9 @@ services:
     envVars:
       - key: MAIL_USER
         value: surakshasetucrime@gmail.com
+      - key: BREVO_API_KEY
+        sync: false        # enter in the Render dashboard (Brevo API key; sends over HTTPS)
       - key: MAIL_PASSWORD
-        sync: false        # enter in the Render dashboard (Gmail app password)
+        sync: false        # optional: Gmail app password (SMTP is blocked on Render's free plan)
       - key: GROQ_API_KEY
         sync: false        # optional: enables the AI assistant
