@@ -26,3 +26,7 @@ body { overflow-wrap: break-word; }
 @supports (padding: max(0px)) {
   body { padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
 }
+
+/* header logo on the police and admin pages */
+.brand .brandimg{width:28px;height:28px;border-radius:7px;vertical-align:middle;margin-right:8px;display:inline-block}
+.brandmark img.logo{border-radius:9px;object-fit:cover}

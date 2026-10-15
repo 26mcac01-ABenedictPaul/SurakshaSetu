@@ -1,3 +1,5 @@
+<p align="center"><img src="src/main/webapp/logo.webp" alt="SurakshaSetu logo" width="200"></p>
+
 # SurakshaSetu 🛡️
 
 **A digital bridge between citizens and the police: report, track and resolve complaints online.**
@@ -98,7 +100,7 @@ SurakshaSetu/
 ├── data/
 │   ├── officers.json               # 590 officers (seed data)
 │   ├── admins.json                 # admin accounts
-│   └── users.json, complaints.json # created at run time (git-ignored)
+│   └── users.json, complaints.json # created at run time (sample data on first start; git-ignored)
 └── src/
     ├── com/surakshasetu/
     │   ├── model/                  # User, Officer, Complaint, ValidationUtil, ...
@@ -147,8 +149,9 @@ Nothing secret is stored in the source code. Settings are read from **environmen
 
 | Variable | Purpose | Required |
 |---|---|---|
-| `MAIL_USER` | Gmail address used to send emails | For email |
-| `MAIL_PASSWORD` | Gmail **App Password** (16 characters, needs 2-step verification) | For email |
+| `MAIL_USER` | Sender address (your Gmail, and the address verified in Brevo) | For email |
+| `BREVO_API_KEY` | Sends email through Brevo's HTTPS API (works on Render's free plan) | Recommended for hosting |
+| `MAIL_PASSWORD` | Gmail **App Password** for SMTP (used when no Brevo key is set) | Local use |
 | `GROQ_API_KEY` | Enables the AI assistants (Groq) | Optional |
 | `ANTHROPIC_API_KEY` | Alternative AI engine | Optional |
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | Only for the optional MySQL test class | Optional |
@@ -164,6 +167,8 @@ Without email settings the app still runs and registration and cases still work,
 | Citizen | Register on the home page |
 | Police officer | Username is the officer's **first name** in lowercase, e.g. `lokesh`. Password `pass123` |
 | Admin | `admin` / `admin123` |
+
+**Sample data:** on first start, when there are no cases yet, `DemoDataLoader` creates 16 sample citizens (`demo_ananya`, `demo_rohan`, ... with password `demo123`) and 84 sample cases in every status (Pending, Awaiting officer, Under Investigation, Closed), so the admin and police dashboards are not empty. Officers with a full queue include `suresh_ka2`, `rakesh_ka1`, `venkatesh`, `latha` and `chitra` (password `pass123`). Set the environment variable `SEED_DEMO_DATA=false` to turn this off, or `force` to add it again to an existing database.
 
 > ⚠️ **Change the admin password** in `data/admins.json` and the officer passwords before exposing the app to the internet.
 
@@ -182,7 +187,7 @@ docker run -p 8080:8080 -e MAIL_USER=you@gmail.com -e MAIL_PASSWORD=your-app-pas
 
 Hosting caveats:
 - **Data is stored in files.** On free hosting the disk is wiped on every redeploy and restart. Attach a persistent disk or move to a database for real use.
-- **Gmail SMTP is blocked on Render's free plan.** Use a paid instance, or switch `EmailService` to an HTTPS email API.
+- **Gmail SMTP is blocked on Render's free plan.** Set `BREVO_API_KEY` (and verify your sender address in Brevo) so emails go out over HTTPS instead.
 
 ---
 

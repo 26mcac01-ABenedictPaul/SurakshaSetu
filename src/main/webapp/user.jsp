@@ -594,6 +594,10 @@ select:focus,textarea:focus,input:focus{outline:none;border-color:var(--amber);b
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <link rel="stylesheet" href="mobile.css">
 </head>
 <body>
@@ -601,7 +605,7 @@ select:focus,textarea:focus,input:focus{outline:none;border-color:var(--amber);b
 <div class="progress" id="prog"></div>
 <header class="topbar">
   <div class="hl">
-    <a class="brand" href="#home" data-go="home" aria-label="SurakshaSetu home"><span class="brandmark"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#35e0c2"/><stop offset=".6" stop-color="#6c8cff"/><stop offset="1" stop-color="#9b7bff"/></linearGradient></defs><path d="M16 2 4 7v8c0 8 5.5 13 12 15 6.5-2 12-7 12-15V7L16 2Z" fill="url(#lgB)"/><path d="M8.5 20h15M10.5 20v-3.5M21.5 20v-3.5M10.5 16.5c1.8-5.5 9.2-5.5 11 0" fill="none" stroke="#04122b" stroke-width="1.8" stroke-linecap="round"/></svg></span><b class="bt">Suraksha<span>Setu</span></b></a>
+    <a class="brand" href="#home" data-go="home" aria-label="SurakshaSetu home"><span class="brandmark"><img class="logo" src="icon-192.png" alt="" width="36" height="36"></span><b class="bt">Suraksha<span>Setu</span></b></a>
     <label class="langsel" title="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9S14.6 18.4 12 21c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3Z"/></svg><select id="langPick" aria-label="Language"><option value="en">English</option></select></label>
   </div>
   <div class="hr">

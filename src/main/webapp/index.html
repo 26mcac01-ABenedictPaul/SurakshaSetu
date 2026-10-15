@@ -68,6 +68,7 @@
   }
   .brand{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:22px;}
   .shield{width:26px; height:29px; flex-shrink:0;}
+  .brandlogo{width:170px; max-width:60%; height:auto; display:block; filter:drop-shadow(0 6px 16px rgba(0,0,0,.5));}
   .brand span{font-family:'Archivo Black',sans-serif; font-size:1.05rem; letter-spacing:.01em;}
   .brand span em{font-style:normal; color:var(--amber);}
 
@@ -159,7 +160,7 @@
 
   /* intro splash (Netflix-style) */
   .splash{position:fixed; inset:0; z-index:100; background:#05080F; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; animation:splashOut .7s 2s ease forwards; pointer-events:none;}
-  .splash svg{width:74px; height:82px; animation:logoZoom 2s ease both;}
+  .splash .splashlogo{width:min(300px,70vw); height:auto; animation:logoZoom 2s ease both; filter:drop-shadow(0 10px 30px rgba(0,0,0,.6));}
   .splash .word{font-family:'Archivo Black',sans-serif; font-size:clamp(1.6rem,6vw,2.6rem); letter-spacing:.14em; color:var(--paper); animation:wordIn 1.6s .2s ease both;}
   .splash .word em{font-style:normal; color:var(--amber);}
   .splash .bar{width:min(260px,60vw); height:3px; background:linear-gradient(90deg,#E53E3E,#3A86FF); transform-origin:left; animation:barGrow 1.6s .1s ease both;}
@@ -177,13 +178,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <link rel="stylesheet" href="mobile.css">
 </head>
 <body>
 
 <div class="splash" aria-hidden="true">
-  <svg viewBox="0 0 34 38" fill="none"><path d="M17 1L32 7V18C32 27 25.5 33.5 17 37C8.5 33.5 2 27 2 18V7L17 1Z" stroke="#F4A300" stroke-width="2"/><path d="M11 19L15 23L24 13" stroke="#F4A300" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  <div class="word">SURAKSHA<em>SETU</em></div>
+  <img class="splashlogo" src="logo.webp" alt="">
   <div class="bar"></div>
 </div>
 <div class="siren-bar"></div>
@@ -202,13 +206,7 @@
   </div>
   <div class="card">
 
-    <div class="brand">
-      <svg class="shield" viewBox="0 0 34 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M17 1L32 7V18C32 27 25.5 33.5 17 37C8.5 33.5 2 27 2 18V7L17 1Z" stroke="#F4A300" stroke-width="2"/>
-        <path d="M11 19L15 23L24 13" stroke="#F4A300" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>SURAKSHA<em>SETU</em></span>
-    </div>
+    <div class="brand"><img class="brandlogo" src="logo.webp" alt="SurakshaSetu: Police, Public, Safe India"></div>
 
     <div class="tabs">
       <button id="tabRegister" class="active" onclick="switchView('register')">Register</button>
